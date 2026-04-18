@@ -1,0 +1,143 @@
+Genkit - Company Overview
+
+Genkit is a web and AI development company focused on helping businesses grow through smart digital solutions. We provide end-to-end services including website development, AI chatbots, mobile applications, and creative design. Our goal is to deliver scalable, reliable, and impactful solutions for startups and businesses.
+
+--------------------------------------------------
+
+About Us
+
+Genkit was founded in June 2024 by a group of passionate individuals interested in technology, creativity, and innovation. What started as an idea among friends has grown into a dedicated team working on real-world digital solutions.
+
+We are a young and dynamic team focused on:
+- Innovation and creativity
+- Client-first approach
+- Scalable and future-ready solutions
+- Continuous learning and improvement
+
+Our mission is to transform ideas into powerful digital experiences.
+
+--------------------------------------------------
+
+Why Choose Genkit
+
+- Cost-effective and high-quality solutions
+- Transparent process with no hidden complexities
+- Creative and innovative thinking
+- Fast delivery and reliable support
+- Focus on real business growth and results
+
+--------------------------------------------------
+
+Core Services
+
+1. Web Development
+We build modern, responsive, and high-performance websites tailored to your business goals. Our websites are user-friendly, scalable, and designed to drive engagement and conversions.
+
+2. AI Chatbot Development
+We develop intelligent AI chatbots that automate customer interaction, improve engagement, and provide instant support for businesses.
+
+3. Mobile App Development
+We create mobile applications that are scalable, efficient, and optimized for performance across devices.
+
+4. UI/UX Design
+We design intuitive and visually appealing user interfaces that enhance user experience and brand identity.
+
+5. E-commerce Solutions
+We build secure and scalable online stores with smooth user experience and strong performance.
+
+6. Video Editing
+We create professional and engaging videos with high-quality visuals, clear storytelling, and platform optimization for social media and web.
+
+7. Graphic Designing
+We design impactful visuals including logos, banners, and social media creatives that represent your brand identity.
+
+--------------------------------------------------
+
+Technologies & Tools
+
+Frontend:
+- HTML
+- CSS
+- JavaScript
+
+Backend:
+- Python
+- Node.js
+
+Database:
+- MySQL
+- MongoDB
+
+Design Tools:
+- Figma
+- Adobe Photoshop
+- Adobe Illustrator
+
+Other Tools:
+- APIs
+- Automation tools
+- Content creation tools
+
+--------------------------------------------------
+
+Strengths
+
+- Young and innovative team
+- Strong focus on design and performance
+- Client-first mindset
+- Scalable and future-ready development
+- Reliable support and maintenance
+
+--------------------------------------------------
+
+How We Work
+
+1. Understand Requirements
+We analyze your business needs and goals.
+
+2. Plan & Design
+We create structured solutions and designs.
+
+3. Develop & Build
+We build high-quality digital products.
+
+4. Deliver & Support
+We provide deployment and ongoing support.
+
+--------------------------------------------------
+
+FAQ
+
+Q: How do I get started with Genkit?
+A: You can contact us through our website or email, and our team will guide you through the next steps.
+
+Q: How long does it take to build a website?
+A: Timelines depend on project complexity, but standard websites are completed faster than advanced custom projects.
+
+Q: What expertise does the Genkit team have?
+A: Our team specializes in web development, design, branding, marketing, and digital solutions.
+
+Q: What if I’m not satisfied with the result?
+A: We provide revisions within the agreed scope to ensure satisfaction.
+
+Q: Can Genkit help startups?
+A: Yes, we support startups from initial setup to complete digital growth.
+
+--------------------------------------------------
+
+Contact Information
+
+Email: genkit.tech@gmail.com
+Website: https://genkit.in
+
+--------------------------------------------------
+
+Vision
+
+To become a trusted digital partner for businesses by delivering innovative and scalable solutions.
+
+Mission
+
+To help businesses grow by transforming ideas into powerful digital products using technology and creativity.
+
+--------------------------------------------------
