@@ -5,6 +5,11 @@ from config import OLLAMA_URL, MODEL_NAME
 from utils import get_history, update_user_info, get_user_info, detect_lead
 from store import search
 
+if not OLLAMA_URL:
+    print("⚠️ WARNING: OLLAMA_URL is not set. AI features will fail.")
+if not MODEL_NAME:
+    print("⚠️ WARNING: MODEL_NAME is not set. AI features will fail.")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Text Utilities
@@ -46,10 +51,10 @@ def enforce_genkit_only(reply: str, name: str = "") -> str:
     # Allow conversational replies or if it addresses the user by name
     if name and name.lower() in r:
         pass
-    elif len(r.split()) < 15 and any(w in r for w in ["hi", "hello", "hey", "name is", "you are"]):
+    elif len(r.split()) < 20 and any(w in r for w in ["hi", "hello", "hey", "help", "sure", "ok", "yes", "no", "name is"]):
         pass
-    # If model went completely off-topic
-    elif "genkit" not in r:
+    # If model went completely off-topic (and it's a long reply)
+    elif "genkit" not in r and len(r.split()) > 10:
         return (
             "Genkit is a web and AI development company. "
             "Visit https://genkit.in or email genkit.tech@gmail.com."
@@ -63,11 +68,42 @@ def enforce_genkit_only(reply: str, name: str = "") -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Smart Fallback (when Ollama is down)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def smart_fallback(query: str, context: str) -> str:
+    """
+    Simple keyword-based retrieval as a fallback if the AI service is offline.
+    """
+    q = query.lower()
+    
+    # 1. Check for specific keywords in the context
+    if "price" in q or "cost" in q or "how much" in q:
+        return "Genkit offers cost-effective solutions tailored to your budget. Please contact genkit.tech@gmail.com for a custom quote!"
+        
+    if "service" in q or "offer" in q or "do you do" in q:
+        return "Genkit provides Web Development, AI Chatbots, Mobile Apps, UI/UX Design, E-commerce, Video Editing, and Graphic Design. Visit https://genkit.in for more."
+
+    if "contact" in q or "email" in q or "phone" in q:
+        return "You can reach Genkit at genkit.tech@gmail.com or visit our website at https://genkit.in."
+
+    if "about" in q or "who is" in q or "what is genkit" in q:
+        return "Genkit is a web and AI development company founded in 2024, focused on innovation and client-first solutions. Learn more at https://genkit.in."
+
+    # 2. If no specific keyword, try to find a matching sentence in the context
+    for line in context.split("\n"):
+        if len(line.strip()) > 30 and any(word in line.lower() for word in q.split() if len(word) > 4):
+            return line.strip() + " (Note: This is an automated fallback response as our AI service is currently busy)."
+
+    return "Genkit is a digital solutions provider. For detailed inquiries while our AI is updating, please email genkit.tech@gmail.com."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Robust HTTP Session
 # ─────────────────────────────────────────────────────────────────────────────
 
 _session = requests.Session()
-_retries = Retry(total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+_retries = Retry(total=2, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
 _session.mount("http://", HTTPAdapter(max_retries=_retries))
 
 
@@ -144,24 +180,54 @@ def get_answer(query: str, session_id: str):
         messages.append({"role": h["role"], "content": h["message"]})
     messages.append({"role": "user", "content": query})
 
-    # ── 5. Call Ollama ───────────────────────────────────────────────────────
+    # ── 5. Call Ollama (With Robust Retry) ───────────────────────────────────
+    import time
+    max_retries = 3
+    response = None
+
+    # Fix OLLAMA_URL if it's localhost (127.0.0.1 is more reliable on Windows)
+    final_url = OLLAMA_URL
+    if "localhost" in final_url:
+        final_url = final_url.replace("localhost", "127.0.0.1")
+
+    for attempt in range(max_retries):
+        try:
+            response = _session.post(
+                final_url,
+                json={
+                    "model": MODEL_NAME,
+                    "messages": messages,
+                    "stream": False,
+                    "options": {"temperature": 0.2, "num_predict": 200},
+                },
+                timeout=60, # Increased for first-load latency
+            )
+
+            if response.status_code == 200:
+                break
+                
+            print(f"OLLAMA HTTP {response.status_code} (Attempt {attempt+1}): {response.text[:200]}")
+            if attempt < max_retries - 1:
+                time.sleep(1.5)
+
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            if attempt == max_retries - 1:
+                # Last resort fallback if service is literally unreachable
+                yield smart_fallback(query, context)
+                return
+            time.sleep(2)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"BRAIN ERROR: {e}")
+                yield "⚠️ AI service encountered an error. Please try again."
+                return
+            time.sleep(1.5)
+
+    if not response or response.status_code != 200:
+        yield "Please contact Genkit — our AI is momentarily busy."
+        return
+
     try:
-        response = _session.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "messages": messages,
-                "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 160},
-            },
-            timeout=60,
-        )
-
-        if response.status_code != 200:
-            print(f"OLLAMA HTTP {response.status_code}: {response.text[:200]}")
-            yield "Please contact Genkit — our AI is momentarily busy."
-            return
-
         data  = response.json()
         reply = data.get("message", {}).get("content", "").strip()
 
@@ -179,10 +245,6 @@ def get_answer(query: str, session_id: str):
 
         yield reply
 
-    except requests.exceptions.ConnectionError:
-        yield "⚠️ Cannot reach the AI service. Please ensure Ollama is running."
-    except requests.exceptions.Timeout:
-        yield "⚠️ AI is taking too long. Please try again in a moment."
     except Exception as e:
-        print(f"BRAIN ERROR: {e}")
+        print(f"BRAIN POST-PROCESS ERROR: {e}")
         yield "⚠️ Something went wrong. Please try again."

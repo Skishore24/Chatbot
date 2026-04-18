@@ -6,6 +6,9 @@ document.addEventListener("DOMContentLoaded", () => {
   renderWelcome();
   addSuggestions();
   autoGrowTextarea();
+  
+  // Open chat by default
+  setTimeout(toggleChat, 500);
 });
 
 // ── Toggle Chat ───────────────────────────────────────────────────────────────

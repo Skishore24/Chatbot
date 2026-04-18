@@ -1,7 +1,6 @@
-import mysql.connector
+import sqlite3
+import os
 from collections import OrderedDict
-from config import DB_CONFIG
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Lead Detection
@@ -13,36 +12,27 @@ def detect_lead(text: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# MySQL Database (Production Ready)
+# SQLite Database (Zero-Config)
 # ─────────────────────────────────────────────────────────────────────────────
 
-from mysql.connector import pooling
-
-try:
-    db_pool = pooling.MySQLConnectionPool(
-        pool_name="genkit_pool",
-        pool_size=5,
-        pool_reset_session=True,
-        **DB_CONFIG
-    )
-except Exception as e:
-    print("FATAL ERROR: Could not create MySQL connection pool:", e)
-    db_pool = None
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "genkit.db")
 
 def get_db_connection():
-    if db_pool:
-        return db_pool.get_connection()
-    return mysql.connector.connect(**DB_CONFIG)
+    """Retrieve a connection to the local SQLite database."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def init_db():
-    """Run table creations once on startup, NOT on every request."""
-    conn = None
+    """Ensure database and tables exist on startup."""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
+        
+        # Create Tables
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS chats (
-                id           INT AUTO_INCREMENT PRIMARY KEY,
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_query   TEXT,
                 bot_response TEXT,
                 created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -50,7 +40,7 @@ def init_db():
         """)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS leads (
-                id         INT AUTO_INCREMENT PRIMARY KEY,
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
                 name       VARCHAR(255),
                 email      VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -58,47 +48,38 @@ def init_db():
         """)
         conn.commit()
         cursor.close()
+        conn.close()
+        print("✅ SQLite Database Initialized.")
     except Exception as e:
-        print("DB INIT ERROR:", e)
-    finally:
-        if conn and conn.is_connected():
-            conn.close()
+        print("❌ DB INIT ERROR:", e)
 
 
 def save_chat_to_db(query: str, response: str):
-    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO chats (user_query, bot_response) VALUES (%s, %s)",
+            "INSERT INTO chats (user_query, bot_response) VALUES (?, ?)",
             (query, response),
         )
         conn.commit()
-        cursor.close()
+        conn.close()
     except Exception as e:
         print("DB ERROR (chat):", e)
-    finally:
-        if conn and conn.is_connected():
-            conn.close()
 
 
 def save_lead_to_db(name: str, email: str):
-    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO leads (name, email) VALUES (%s, %s)",
+            "INSERT INTO leads (name, email) VALUES (?, ?)",
             (name, email),
         )
         conn.commit()
-        cursor.close()
+        conn.close()
     except Exception as e:
         print("DB ERROR (lead):", e)
-    finally:
-        if conn and conn.is_connected():
-            conn.close()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
