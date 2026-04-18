@@ -1,27 +1,34 @@
 import chromadb
 
-client = chromadb.PersistentClient(path="/tmp/chroma_db")
+# ✅ safest option for free hosting (NO disk usage)
+client = chromadb.Client()
+
 collection = client.get_or_create_collection(name="genkit")
 
 
 def add_documents(docs):
-    if collection.count() > 0:
-        print("⚠️ Data already exists, skipping insert")
-        return
+    try:
+        if collection.count() > 0:
+            print("⚠️ Skipping insert (already exists)")
+            return
 
-    for i, doc in enumerate(docs):
-        collection.add(
-            documents=[doc],
-            ids=[str(i)]
-        )
+        for i, doc in enumerate(docs):
+            collection.add(
+                documents=[doc],
+                ids=[str(i)]
+            )
+
+        print("✅ Documents added to vector DB")
+
+    except Exception as e:
+        print("❌ VECTOR DB ERROR:", e)
 
 
-# 🔥 IMPROVED SEARCH (SMART RAG)
 def search(query):
     try:
         results = collection.query(
             query_texts=[query],
-            n_results=5
+            n_results=3
         )
 
         docs = results.get("documents", [[]])[0]
@@ -29,17 +36,8 @@ def search(query):
         if not docs:
             return ""
 
-        # ✅ Remove duplicates
-        unique_docs = list(dict.fromkeys(docs))
-
-        # ✅ Keep only best 3 chunks (reduce noise)
-        top_docs = unique_docs[:3]
-
-        # ✅ Clean + join properly
-        context = "\n".join(top_docs)
-
-        return context.strip()
+        return "\n".join(docs)
 
     except Exception as e:
-        print("VECTOR SEARCH ERROR:", e)
+        print("❌ SEARCH ERROR:", e)
         return ""
