@@ -1,6 +1,6 @@
 import chromadb
 
-client = chromadb.PersistentClient(path="./chroma_db")
+client = chromadb.PersistentClient(path="/tmp/chroma_db")
 collection = client.get_or_create_collection(name="genkit")
 
 
