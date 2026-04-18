@@ -5,20 +5,19 @@ from vector_db import search
 from lead import detect_lead
 
 
+# ── Clean Output ─────────────────────────────
 def clean(text):
     return " ".join(str(text).split()) if text else ""
 
 
+# ── Smart Filter (improved) ──────────────────
 def is_genkit_query(query):
-    q = query.lower().strip()
-
-    if "genkit" in q:
-        return True
+    q = query.lower()
 
     blocked = [
-        "elon musk", "celebrity", "weather",
-        "news", "movie", "song", "cricket",
-        "football", "politics", "science", "math"
+        "elon musk", "celebrity", "weather", "news",
+        "movie", "song", "cricket", "football",
+        "politics", "science", "math"
     ]
 
     if any(b in q for b in blocked):
@@ -27,52 +26,61 @@ def is_genkit_query(query):
     return True
 
 
+# ── Main Function ────────────────────────────
 def stream_answer(query, session_id):
 
-    # ── Memory ─────────────────────────────
+    # Memory
     save_user_info(session_id, query)
     user = get_user_info(session_id)
     name = user.get("name", "")
 
-    # ── Filter ─────────────────────────────
+    # Filter
     if not is_genkit_query(query):
-        yield "I can help only with Genkit related queries."
+        yield "I can help only with Genkit services and company details."
         return
 
-    # ── Vector Search ──────────────────────
+    # ── Vector Search ────────────────────────
     context = search(query)
 
-    if not context:
+    if not context or len(context.strip()) < 30:
         context = """
 Genkit is a digital solutions company.
 
-Services:
+We provide:
 - Website development
 - AI chatbot development
 - Mobile app development
 - UI/UX design
 - E-commerce solutions
+- Video editing
+- Graphic designing
+
+Technologies:
+HTML, CSS, JavaScript, Python, Node.js, MongoDB, MySQL
 
 Contact: genkit.tech@gmail.com
 """
 
-    # ── History ────────────────────────────
+    # limit context (important)
+    context = context[:300]
+
+    # History
     history = get_history(session_id)
 
-    # ── Personalization ────────────────────
+    # Personalization
     prefix = f"{name}, " if name else ""
 
-    # ── Prompt ─────────────────────────────
+    # ── Prompt ───────────────────────────────
     system_prompt = f"""
 You are Genkit AI Assistant.
 
 Rules:
 - Answer ONLY using given context
 - Talk only about Genkit
-- Use simple and clear English
+- Use simple and natural English
 - Keep response short (2–3 lines)
-- Sound natural like ChatGPT
-- No headings or labels
+- Do NOT say "based on context"
+- Do NOT add outside knowledge
 - If not found → say "Please contact Genkit"
 
 Context:
@@ -89,7 +97,7 @@ Context:
 
     messages.append({"role": "user", "content": query})
 
-    # ── API Call ───────────────────────────
+    # ── API Call ────────────────────────────
     try:
         res = requests.post(
             OLLAMA_URL,
@@ -98,16 +106,16 @@ Context:
                 "messages": messages,
                 "stream": False,
                 "options": {
-                    "temperature": 0.3,
-                    "num_predict": 120
+                    "temperature": 0.2,
+                    "num_predict": 100
                 }
             },
-            timeout=120
+            timeout=60
         )
 
         if res.status_code != 200:
             print("API ERROR:", res.text)
-            yield "⚠️ AI server error."
+            yield "Please contact Genkit for details."
             return
 
         data = res.json()
@@ -118,32 +126,32 @@ Context:
 
         reply = clean(reply)
 
-        # 🔥 Smart shortening
+        # shorten
         sentences = reply.split(". ")
         reply = ". ".join(sentences[:2]).strip()
 
         if not reply.endswith("."):
             reply += "."
 
-        # 🔥 Personal touch
+        # personalization
         if prefix:
             reply = prefix + reply
 
-        # 🔥 Safety check
-        if "genkit" not in reply.lower():
-            reply = "I can help only with Genkit related queries."
+        # ❌ REMOVE THIS BAD LOGIC (IMPORTANT)
+        # if "genkit" not in reply.lower():
+        #     reply = "I can help only with Genkit related queries."
 
-        # 🔥 Lead detection
+        # lead
         if detect_lead(query):
             reply += "\n\n👉 Share your name & email to get started."
 
         yield reply
 
     except requests.exceptions.Timeout:
-        yield "⚠️ Server timeout."
+        yield "⚠️ Server timeout. Try again."
 
     except requests.exceptions.ConnectionError:
-        yield "⚠️ AI server not running."
+        yield "⚠️ AI service not available."
 
     except Exception as e:
         print("ERR:", e)
