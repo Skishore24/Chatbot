@@ -1,4 +1,7 @@
+import sys
 import os
+sys.path.append(os.path.dirname(__file__))
+
 import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -17,14 +20,33 @@ from store import load_and_split, add_documents
 # App Lifespan  (startup / shutdown)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────
+# ✅ STARTUP (FIXED FOR RENDER)
+# ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+<<<<<<< HEAD
     print("--- Genkit AI Backend Starting ---")
     init_db()
     print("--- Database Initialized ---")
     docs = load_and_split()
     add_documents(docs)
     print("--- Vector DB Ready ---")
+=======
+    print("🚀 Starting...")
+
+    try:
+        docs = load_and_split()
+
+        if docs:
+            add_documents(docs)
+
+        print("✅ Vector DB Ready")
+
+    except Exception as e:
+        print("❌ Startup Error:", e)
+
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
     yield
     print("--- Genkit AI Backend Shutting Down ---")
 
@@ -35,19 +57,29 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# ─────────────────────────────────────────────
+# ✅ CORS (FRONTEND FIX)
+# ─────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # change later for production
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["X-Session-Id"],
 )
 
 
+<<<<<<< HEAD
 # ─────────────────────────────────────────────────────────────────────────────
 # Request / Response Models
 # ─────────────────────────────────────────────────────────────────────────────
 
+=======
+# ─────────────────────────────────────────────
+# ✅ MODELS
+# ─────────────────────────────────────────────
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
 class ChatRequest(BaseModel):
     q: str
     session_id: Optional[str] = None
@@ -83,6 +115,7 @@ class LeadRequest(BaseModel):
         return v.lower()
 
 
+<<<<<<< HEAD
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints
 # ─────────────────────────────────────────────────────────────────────────────
@@ -91,14 +124,36 @@ class LeadRequest(BaseModel):
 async def health():
     """Health-check endpoint for uptime monitors."""
     return {"status": "ok", "service": "Genkit AI Chatbot"}
+=======
+# ─────────────────────────────────────────────
+# ✅ LEAD API
+# ─────────────────────────────────────────────
+@app.post("/lead")
+def capture_lead(data: Lead):
+    try:
+        save_chat(data.name, data.email)
+        return {"status": "ok"}
+    except Exception as e:
+        print("Lead Error:", e)
+        return {"status": "error"}
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
 
 
+# ─────────────────────────────────────────────
+# ✅ CHAT API (STREAM SAFE)
+# ─────────────────────────────────────────────
 @app.post("/chat")
+<<<<<<< HEAD
 async def chat(req: ChatRequest):
+=======
+def chat(req: ChatRequest):
+
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
     session_id = req.session_id or str(uuid.uuid4())
     add_message(session_id, "user", req.q)
 
     def generator():
+<<<<<<< HEAD
         full_reply = ""
         for chunk in get_answer(req.q, session_id):
             full_reply += chunk
@@ -108,6 +163,27 @@ async def chat(req: ChatRequest):
         if full_reply and "⚠️" not in full_reply:
             add_message(session_id, "assistant", full_reply)
             save_chat_to_db(req.q, full_reply)
+=======
+        full = ""
+
+        try:
+            for chunk in stream_answer(req.q, session_id):
+                full += chunk
+                yield chunk
+
+        except Exception as e:
+            print("STREAM ERROR:", e)
+            yield "⚠️ Server error. Please try again."
+
+        finally:
+            if full:
+                add_message(session_id, "assistant", full)
+
+                try:
+                    save_chat(req.q, full)
+                except:
+                    pass
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
 
     return StreamingResponse(
         generator(),
@@ -116,6 +192,7 @@ async def chat(req: ChatRequest):
     )
 
 
+<<<<<<< HEAD
 @app.post("/lead")
 async def submit_lead(req: LeadRequest):
     save_lead_to_db(req.name, req.email)
@@ -145,3 +222,22 @@ else:
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+=======
+# ─────────────────────────────────────────────
+# ✅ HEALTH CHECK (IMPORTANT FOR RENDER)
+# ─────────────────────────────────────────────
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+# ─────────────────────────────────────────────
+# ✅ SERVE FRONTEND (SAFE VERSION)
+# ─────────────────────────────────────────────
+frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
+
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    print("⚠️ Frontend folder not found")
+>>>>>>> 569545dffd34f71451109b0ee05c53b997d18174
