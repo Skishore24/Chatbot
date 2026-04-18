@@ -26,7 +26,7 @@ from vector_db import add_documents
 # ─────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 Starting Genkit AI Backend...")
+    print("🚀 Starting...")
 
     try:
         docs = load_and_split()
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
         print("✅ Vector DB Ready")
 
     except Exception as e:
-        print("❌ Vector DB Error:", e)
+        print("❌ Startup Error:", e)
 
     yield
 
