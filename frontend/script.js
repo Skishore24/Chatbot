@@ -11,20 +11,20 @@ document.addEventListener("DOMContentLoaded", () => {
 // ── Toggle Chat ───────────────────────────────────────────────────────────────
 function toggleChat() {
   const chatBox = document.getElementById("chatBox");
-  const icon = document.getElementById("toggleIcon");
-  const isOpen = chatBox.classList.toggle("active");
+  const icon    = document.getElementById("toggleIcon");
+  const isOpen  = chatBox.classList.toggle("active");
   icon.textContent = isOpen ? "close" : "chat";
   if (isOpen) setTimeout(() => document.getElementById("input").focus(), 300);
 }
 
 // ── Welcome Message ───────────────────────────────────────────────────────────
 function renderWelcome() {
-  const welcomeText = "👋 Hi! I'm the **Genkit AI Assistant**.\n\nAsk me anything about our services, portfolio, or how we can help your business!";
+  const text   = "👋 Hi! I'm the **Genkit AI Assistant**.\n\nAsk me anything about our services, portfolio, or how we can help your business!";
   const bubble = appendBotMessage("");
-  typeWriter(welcomeText, bubble);
+  typeWriter(text, bubble);
 }
 
-function typeWriter(text, element, speed = 15) {
+function typeWriter(text, element, speed = 14) {
   let i = 0;
   element.innerHTML = "";
 
@@ -41,23 +41,20 @@ function typeWriter(text, element, speed = 15) {
   type();
 }
 
-// ── Suggestions ───────────────────────────────────────────────────────────────
+// ── Quick Suggestions ─────────────────────────────────────────────────────────
 function addSuggestions() {
   const msgBox = document.getElementById("messages");
-
-  const row = document.createElement("div");
+  const row    = document.createElement("div");
   row.className = "suggestions";
 
-  ["What is Genkit?", "What Tools Used", "Services", "Contact"].forEach(text => {
-    const btn = document.createElement("button");
+  ["What is Genkit?", "What tools do you use?", "Services offered", "Contact info"].forEach(text => {
+    const btn     = document.createElement("button");
     btn.className = "suggestion-btn";
     btn.innerText = text;
-
-    btn.onclick = () => {
+    btn.onclick   = () => {
       document.getElementById("input").value = text;
       sendMessage();
     };
-
     row.appendChild(btn);
   });
 
@@ -65,109 +62,107 @@ function addSuggestions() {
   setTimeout(scrollToBottom, 100);
 }
 
-// ── Send Message (FIXED) ─────────────────────────────────────────────────────
+// ── Send Message ──────────────────────────────────────────────────────────────
 async function sendMessage() {
   const input = document.getElementById("input");
-  const text = input.value.trim();
+  const text  = input.value.trim();
   if (!text) return;
 
   setInputState(true);
   appendUserMessage(text);
   input.value = "";
+  input.style.height = "auto";   // reset auto-grow
 
   const typingIndicator = appendTypingIndicator();
 
   try {
     const res = await fetch("/chat", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ q: text, session_id: sessionId || undefined })
+      body:    JSON.stringify({ q: text, session_id: sessionId || undefined }),
     });
 
-    if (!res.ok) throw new Error("Server error");
-
+    // Save session id from response header
     const newSessionId = res.headers.get("X-Session-Id");
     if (newSessionId) {
       sessionId = newSessionId;
       localStorage.setItem("genkit_session", sessionId);
     }
 
-    // ✅ FIX: ONLY use res.text()
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.detail || "Server error");
+    }
+
     const responseText = await res.text();
 
     typingIndicator.remove();
     const bubble = appendBotMessage("");
     typeWriter(responseText, bubble);
 
-    // ✅ Auto lead trigger
+    // Show lead form if AI prompted for it
     if (responseText.includes("👉")) {
-      setTimeout(showLeadForm, responseText.length * 15 + 500);
+      setTimeout(() => showLeadForm(), responseText.length * 14 + 600);
     }
 
   } catch (err) {
     if (typingIndicator) typingIndicator.remove();
-    appendBotMessage("⚠️ Server error. Please try again.");
-    console.error(err);
+    appendBotMessage(`⚠️ ${err.message || "Server error. Please try again."}`);
+    console.error("[Genkit Chat Error]", err);
   } finally {
     setInputState(false);
+    document.getElementById("input").focus();
   }
 }
 
 // ── Append Messages ───────────────────────────────────────────────────────────
 function appendUserMessage(text) {
   const msgBox = document.getElementById("messages");
-  const row = document.createElement("div");
+  const row    = document.createElement("div");
   row.className = "message-row user-row";
-
   row.innerHTML = `
     <div class="avatar user-avatar">
       <span class="material-symbols-rounded">person</span>
     </div>
     <div class="message">${escapeHTML(text)}</div>
   `;
-
   msgBox.appendChild(row);
   scrollToBottom();
 }
 
 function appendBotMessage(text) {
   const msgBox = document.getElementById("messages");
-  const row = document.createElement("div");
+  const row    = document.createElement("div");
   row.className = "message-row bot-row";
 
-  const bubble = document.createElement("div");
+  const bubble  = document.createElement("div");
   bubble.className = "message";
   bubble.innerHTML = renderMarkdown(text);
 
   row.innerHTML = `
     <div class="avatar bot-avatar">
-      <img src="./images/logo1.png" alt="Genkit Logo" class="bot-logo">
+      <img src="./images/logo1.png" alt="Genkit" class="bot-logo">
     </div>
   `;
-
   row.appendChild(bubble);
   msgBox.appendChild(row);
   scrollToBottom();
-
   return bubble;
 }
 
-// ── Typing Indicator ─────────────────────────────────────────────────────────
+// ── Typing Indicator ──────────────────────────────────────────────────────────
 function appendTypingIndicator() {
   const msgBox = document.getElementById("messages");
-
-  const row = document.createElement("div");
+  const row    = document.createElement("div");
   row.className = "message-row bot-row";
-
   row.innerHTML = `
     <div class="avatar bot-avatar">
-      <img src="./images/logo1.png" class="bot-logo">
+      <img src="./images/logo1.png" class="bot-logo" alt="Genkit">
     </div>
     <div class="typing-indicator">
       <span></span><span></span><span></span>
     </div>
   `;
-
   msgBox.appendChild(row);
   scrollToBottom();
   return row;
@@ -179,12 +174,24 @@ function renderMarkdown(text) {
 
   let html = escapeHTML(text);
 
+  // Bold, italic, inline code
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
-  html = html.replace(/_(.+?)_/g, "<em>$1</em>");
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-  html = html.replace(/^[-•] (.+)$/gm, "<li>$1</li>");
-  html = html.replace(/(<li>.*<\/li>)/gs, "<ul>$1</ul>");
+  html = html.replace(/\*(.+?)\*/g,     "<em>$1</em>");
+  html = html.replace(/_(.+?)_/g,       "<em>$1</em>");
+  html = html.replace(/`([^`]+)`/g,     "<code>$1</code>");
+
+  // Numbered lists  (1. item)
+  html = html.replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>");
+
+  // Bullet lists  (- item or • item)
+  html = html.replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>");
+
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li>.*?<\/li>(\n|<br>)*)+/gs, match =>
+    `<ul>${match.replace(/<br>/g, "")}</ul>`
+  );
+
+  // Line breaks
   html = html.replace(/\n/g, "<br>");
 
   return html;
@@ -193,16 +200,13 @@ function renderMarkdown(text) {
 // ── Utilities ─────────────────────────────────────────────────────────────────
 function escapeHTML(str) {
   return str.replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;",
   }[c]));
 }
 
 function setInputState(disabled) {
-  document.getElementById("input").disabled = disabled;
+  document.getElementById("input").disabled   = disabled;
   document.getElementById("sendBtn").disabled = disabled;
 }
 
@@ -220,37 +224,76 @@ function autoGrowTextarea() {
   });
 }
 
-// ── Lead Form ─────────────────────────────────────────────────────────────────
+// ── Lead Capture Form ─────────────────────────────────────────────────────────
 function showLeadForm() {
+  // Don't show more than once
+  if (document.getElementById("leadFormCard")) return;
+
   const msgBox = document.getElementById("messages");
-
-  const form = document.createElement("div");
-  form.innerHTML = `
-    <input id="leadName" placeholder="Your Name" />
-    <input id="leadEmail" placeholder="Your Email" />
-    <button onclick="submitLead()">Submit</button>
+  const card   = document.createElement("div");
+  card.className = "lead-form-card";
+  card.id        = "leadFormCard";
+  card.innerHTML = `
+    <p class="lead-form-title">✉️ Get a Free Quote</p>
+    <input  id="leadName"  class="lead-input" type="text"  placeholder="Your Name"  autocomplete="name">
+    <input  id="leadEmail" class="lead-input" type="email" placeholder="Your Email" autocomplete="email">
+    <p id="leadError" class="lead-error" style="display:none;"></p>
+    <button id="leadSubmitBtn" class="lead-submit" onclick="submitLead()">Send →</button>
   `;
-
-  msgBox.appendChild(form);
+  msgBox.appendChild(card);
+  setTimeout(scrollToBottom, 100);
 }
 
 async function submitLead() {
-  const name = document.getElementById("leadName").value;
-  const email = document.getElementById("leadEmail").value;
+  const name      = document.getElementById("leadName").value.trim();
+  const email     = document.getElementById("leadEmail").value.trim();
+  const errorEl   = document.getElementById("leadError");
+  const submitBtn = document.getElementById("leadSubmitBtn");
 
-  await fetch("/lead", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email })
-  });
+  // Client-side validation
+  if (!name) {
+    showLeadError("Please enter your name."); return;
+  }
+  if (!email || !email.includes("@") || !email.split("@")[1]?.includes(".")) {
+    showLeadError("Please enter a valid email address."); return;
+  }
 
-  appendBotMessage("✅ Thanks! We'll contact you soon.");
+  errorEl.style.display = "none";
+  submitBtn.disabled    = true;
+  submitBtn.textContent = "Sending…";
+
+  try {
+    const res = await fetch("/lead", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ name, email, session_id: sessionId || undefined }),
+    });
+
+    if (!res.ok) throw new Error("Failed to submit.");
+
+    // Remove form, show success message
+    document.getElementById("leadFormCard")?.remove();
+    appendBotMessage(`✅ Thanks **${escapeHTML(name)}**! We'll reach out to **${escapeHTML(email)}** soon.`);
+    scrollToBottom();
+
+  } catch (err) {
+    showLeadError("Something went wrong. Please email us at genkit.tech@gmail.com.");
+    submitBtn.disabled    = false;
+    submitBtn.textContent = "Send →";
+    console.error("[Lead Submit Error]", err);
+  }
+}
+
+function showLeadError(msg) {
+  const el = document.getElementById("leadError");
+  if (!el) return;
+  el.textContent    = msg;
+  el.style.display  = "block";
 }
 
 // ── Keyboard Shortcut ─────────────────────────────────────────────────────────
-document.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", e => {
   const input = document.getElementById("input");
-
   if (e.key === "Enter" && !e.shiftKey && document.activeElement === input) {
     e.preventDefault();
     sendMessage();

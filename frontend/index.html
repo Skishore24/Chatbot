@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="img" href="./images/logo1.png">
   <meta name="description" content="Genkit AI Assistant — Ask anything about Genkit's web and AI development services.">
+  <meta name="robots" content="index, follow">
   <title>Genkit | AI Assistant</title>
+  <link rel="icon" type="image/png" href="./images/logo1.png">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0">
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -25,14 +27,13 @@
 
     <!-- Header -->
     <div class="chat-header">
-      <div class="header-info">
-        <div class="header-text">
-          <span class="header-title">Genkit Assistant</span>
-        </div>
-        <div class="bot-logo-header">
-          <img src="./images/logo1.png" alt="Genkit Logo">
-        </div>
+      <div class="bot-logo-header">
+        <img src="./images/logo1.png" alt="Genkit Logo">
       </div>
+      <span class="header-title">Genkit Assistant</span>
+      <button class="close-btn" onclick="toggleChat()" aria-label="Close chat">
+        <span class="material-symbols-rounded">close</span>
+      </button>
     </div>
 
     <!-- Messages -->
